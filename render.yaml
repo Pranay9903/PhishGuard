@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: phishguard
+    runtime: python
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p uploads/screenshots uploads/reports
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///phishing_detect.db
+      - key: SESSION_COOKIE_SECURE
+        value: "true"

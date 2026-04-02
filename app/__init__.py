@@ -39,6 +39,22 @@ def create_app(config_name='default'):
     
     return app
 
+
+def celery_available():
+    """Check if Celery broker is reachable and configured."""
+    broker = celery.conf.get('broker_url', '') or celery.conf.get('BROKER_URL', '')
+    if not broker:
+        return False
+    try:
+        from kombu import Connection
+        conn = Connection(broker)
+        conn.ensure_connection(max_retries=1, timeout=2)
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
 def create_celery_app(app=None):
     app = app or create_app()
     celery.conf.update(app.config)

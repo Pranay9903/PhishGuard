@@ -235,8 +235,13 @@ class BulkAnalyze(Resource):
         reader = csv.reader(io.StringIO(content))
         urls = [row[0] for row in reader if row]
         
-        from app.tasks.bulk_analysis import process_bulk_urls
-        process_bulk_urls.delay(current_user.id, urls, batch_id)
+        from app import celery_available
+        if celery_available():
+            from app.tasks.bulk_analysis import process_bulk_urls
+            process_bulk_urls.delay(current_user.id, urls, batch_id)
+        else:
+            from app.tasks.bulk_analysis import process_bulk_urls_sync
+            process_bulk_urls_sync(current_user.id, urls, batch_id)
         
         return {'batch_id': batch_id, 'total_urls': len(urls)}
 
