@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze URL - PhishGuard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analyze-hero {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .analyze-hero h2 {
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+    .analyze-hero p {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+    .url-input-wrap {
+        position: relative;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    .url-input-wrap .input-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--cyan);
+        font-size: 1.2rem;
+        z-index: 2;
+    }
+    .url-input-neon {
+        width: 100%;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1rem 7.5rem 1rem 3.25rem;
+        color: var(--text-primary);
+        font-size: 1rem;
+        font-family: 'JetBrains Mono', monospace;
+        transition: all 0.3s;
+    }
+    .url-input-neon:focus {
+        outline: none;
+        border-color: var(--cyan);
+        box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.1), 0 0 30px rgba(0, 240, 255, 0.06);
+    }
+    .url-input-neon::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.5;
+        font-family: 'Inter', sans-serif;
+    }
+    .url-input-wrap .btn-scan {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-radius: 10px;
+        padding: 0.6rem 1.25rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+    .result-card {
+        position: relative;
+        overflow: hidden;
+    }
+    .result-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient);
+    }
+    .result-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .verdict-large {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 30px;
+        font-size: 1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .verdict-large.safe {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        border: 1.5px solid rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+    }
+    .verdict-large.suspicious {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        border: 1.5px solid rgba(245, 158, 11, 0.4);
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
+    }
+    .verdict-large.phishing {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border: 1.5px solid rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
+    }
+    .score-bar-wrap {
+        margin-bottom: 2rem;
+    }
+    .score-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    .score-bar-label .score-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 700;
+    }
+    .score-bar-track {
+        height: 12px;
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    .score-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 1s ease;
+        position: relative;
+    }
+    .score-bar-fill.safe {
+        background: linear-gradient(90deg, rgba(0,240,255,0.6), var(--success));
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+    .score-bar-fill.suspicious {
+        background: linear-gradient(90deg, var(--purple), var(--warning));
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+    .score-bar-fill.phishing {
+        background: linear-gradient(90deg, var(--danger), #ff6b6b);
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+    }
+    .heuristics-table {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
+    .heuristics-table thead th {
+        background: rgba(0, 240, 255, 0.04) !important;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-color: var(--border-color) !important;
+        padding: 0.75rem 1rem;
+    }
+    .heuristics-table tbody td {
+        padding: 0.75rem 1rem;
+        border-color: var(--border-color) !important;
+        vertical-align: middle;
+        color: var(--text-primary);
+    }
+    .heuristics-table tbody tr {
+        background: transparent;
+        transition: background 0.2s;
+    }
+    .heuristics-table tbody tr:hover {
+        background: rgba(0, 240, 255, 0.04);
+    }
+    .risk-indicator {
+        height: 6px;
+        border-radius: 4px;
+        background: var(--bg-secondary);
+        overflow: hidden;
+        min-width: 80px;
+    }
+    .risk-indicator .fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.8s ease;
+    }
+    .risk-indicator .fill.low {
+        background: linear-gradient(90deg, rgba(0,240,255,0.5), var(--success));
+    }
+    .risk-indicator .fill.medium {
+        background: linear-gradient(90deg, var(--purple), var(--warning));
+    }
+    .risk-indicator .fill.high {
+        background: linear-gradient(90deg, var(--danger), #ff6b6b);
+    }
+    .ml-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    .ml-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--gradient);
+        opacity: 0.3;
+        transition: opacity 0.3s;
+    }
+    .ml-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(0, 240, 255, 0.25);
+        box-shadow: 0 8px 30px rgba(0, 240, 255, 0.08);
+    }
+    .ml-card:hover::after {
+        opacity: 0.8;
+    }
+    .ml-card .ml-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+    .ml-card .ml-score {
+        font-size: 1.8rem;
+        font-weight: 800;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.1;
+    }
+    .ml-card .ml-bar {
+        margin-top: 0.75rem;
+        height: 4px;
+        background: var(--bg-secondary);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .ml-card .ml-bar .fill {
+        height: 100%;
+        background: var(--gradient);
+        border-radius: 4px;
+        transition: width 1s ease;
+    }
+    .feedback-btn {
+        border-radius: 10px;
+        padding: 0.55rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    .url-display {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        color: var(--cyan);
+        word-break: break-all;
+    }
+    .info-feature {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .info-feature:last-child {
+        border-bottom: none;
+    }
+    .info-feature i {
+        color: var(--cyan);
+        font-size: 1rem;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+    }
+    .info-feature span {
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+    }
+    .section-label {
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .section-label i {
+        color: var(--cyan);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analyze-hero">
+    <h2><span class="text-gradient">URL Threat Analysis</span></h2>
+    <p>Enter a URL to scan with our AI-powered phishing detection engine</p>
+</div>
+
+<div class="url-input-wrap mb-4">
+    <i class="bi bi-globe input-icon"></i>
+    <form method="GET" class="d-flex">
+        <input type="url" name="url" class="url-input-neon" placeholder="Enter a URL to analyze..." value="{{ url or '' }}" required>
+        <button type="submit" class="btn btn-neon btn-scan"><i class="bi bi-search me-1"></i> Scan</button>
+    </form>
+</div>
+
+{% if url and result %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card result-card mb-4">
+            <div class="card-body p-4">
+                <div class="result-header">
+                    <h5 class="mb-0 section-label"><i class="bi bi-clipboard-data"></i> Analysis Result</h5>
+                    {% if result == 'safe' %}
+                    <span class="verdict-large safe"><i class="bi bi-shield-check"></i> Safe</span>
+                    {% elif result == 'suspicious' %}
+                    <span class="verdict-large suspicious"><i class="bi bi-exclamation-triangle"></i> Suspicious</span>
+                    {% else %}
+                    <span class="verdict-large phishing"><i class="bi bi-shield-x"></i> Phishing</span>
+                    {% endif %}
+                </div>
+
+                <div class="url-display mb-4"><i class="bi bi-link-45deg me-1"></i> {{ url }}</div>
+
+                <div class="score-bar-wrap">
+                    <div class="score-bar-label">
+                        <span>Threat Score</span>
+                        <span class="score-val" style="color: var(--{{ 'success' if heuristics.total_score < 0.3 else 'warning' if heuristics.total_score < 0.6 else 'danger' }});">{{ "%.1f"|format(heuristics.total_score * 100) }}%</span>
+                    </div>
+                    <div class="score-bar-track">
+                        <div class="score-bar-fill {{ 'safe' if heuristics.total_score < 0.3 else 'suspicious' if heuristics.total_score < 0.6 else 'phishing' }}" style="width: {{ (heuristics.total_score * 100)|int }}%;"></div>
+                    </div>
+                </div>
+
+                <h6 class="section-label"><i class="bi bi-list-check"></i> Heuristics Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table heuristics-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Heuristic</th>
+                                <th style="width: 100px;">Score</th>
+                                <th style="width: 120px;">Risk Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, value in heuristics.items() %}
+                            {% if key not in ['total_score', 'result', 'confidence'] %}
+                            <tr>
+                                <td style="font-weight: 500;">{{ key|replace('_', ' ')|title }}</td>
+                                <td>
+                                    <span class="font-mono" style="color: var(--{{ 'success' if value < 0.3 else 'warning' if value < 0.6 else 'danger' }});">{{ "%.2f"|format(value) }}</span>
+                                </td>
+                                <td>
+                                    <div class="risk-indicator">
+                                        <div class="fill {{ 'low' if value < 0.3 else 'medium' if value < 0.6 else 'high' }}" style="width: {{ (value * 100)|int }}%;"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if ml_scores %}
+                <h6 class="section-label mt-4 mb-3"><i class="bi bi-cpu"></i> ML Ensemble Scores</h6>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="ml-card">
+                            <div class="ml-label">Random Forest</div>
+                            <div class="ml-score">{{ "%.2f"|format(ml_scores.random_forest) }}</div>
+                            <div class="ml-bar"><div class="fill" style="width: {{ (ml_scores.random_forest * 100)|int }}%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="ml-card">
+                            <div class="ml-label">XGBoost</div>
+                            <div class="ml-score">{{ "%.2f"|format(ml_scores.xgboost) }}</div>
+                            <div class="ml-bar"><div class="fill" style="width: {{ (ml_scores.xgboost * 100)|int }}%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="ml-card">
+                            <div class="ml-label">LSTM</div>
+                            <div class="ml-score">{{ "%.2f"|format(ml_scores.lstm) }}</div>
+                            <div class="ml-bar"><div class="fill" style="width: {{ (ml_scores.lstm * 100)|int }}%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="ml-card">
+                            <div class="ml-label">BERT</div>
+                            <div class="ml-score">{{ "%.2f"|format(ml_scores.bert) }}</div>
+                            <div class="ml-bar"><div class="fill" style="width: {{ (ml_scores.bert * 100)|int }}%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <span class="section-label mb-0"><i class="bi bi-info-circle"></i> Analysis Info</span>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem;">
+                    Our multi-layered detection engine combines heuristic analysis with ML ensemble models for maximum accuracy.
+                </p>
+                <div class="info-feature">
+                    <i class="bi bi-link-45deg"></i>
+                    <span>URL structure & pattern analysis</span>
+                </div>
+                <div class="info-feature">
+                    <i class="bi bi-globe"></i>
+                    <span>Domain reputation check</span>
+                </div>
+                <div class="info-feature">
+                    <i class="bi bi-lock"></i>
+                    <span>SSL certificate validation</span>
+                </div>
+                <div class="info-feature">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>DNS record analysis</span>
+                </div>
+                <div class="info-feature">
+                    <i class="bi bi-slash-circle"></i>
+                    <span>Typosquatting detection</span>
+                </div>
+                <div class="info-feature">
+                    <i class="bi bi-cpu"></i>
+                    <span>ML ensemble prediction</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif url %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-hourglass-split" style="font-size: 3rem; color: var(--text-secondary); opacity: 0.4;"></i>
+        <p class="mt-3" style="color: var(--text-secondary);">No results returned for this URL. Try scanning again.</p>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--cyan-glow); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="bi bi-shield-check" style="font-size: 2rem; color: var(--cyan);"></i>
+        </div>
+        <h5 style="font-weight: 700;">Ready to Analyze</h5>
+        <p style="color: var(--text-secondary); max-width: 400px; margin: 0.5rem auto 0;">
+            Enter a URL in the field above to run a comprehensive phishing threat scan powered by AI.
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

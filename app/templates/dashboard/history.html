@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History - PhishGuard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">
+            <i class="bi bi-clock-history text-cyan me-2"></i>Analysis History
+        </h3>
+        <p class="text-secondary mb-0" style="font-size: 0.9rem;">Review all your past URL analyses</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-neon" style="border-color: var(--danger); color: var(--danger);" onclick="deleteSelected()">
+            <i class="bi bi-trash me-1"></i> Delete Selected
+        </button>
+        <button class="btn btn-neon" style="border-color: var(--danger); color: var(--danger);" onclick="deleteAll()">
+            <i class="bi bi-trash me-1"></i> Delete All
+        </button>
+        <a href="{{ url_for('main.export_csv') }}" class="btn btn-neon">
+            <i class="bi bi-download me-1"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+{% set total = analyses.items|length %}
+{% set safe_count = analyses.items|selectattr('result', 'equalto', 'safe')|list|length %}
+{% set suspicious_count = analyses.items|selectattr('result', 'equalto', 'suspicious')|list|length %}
+{% set phishing_count = analyses.items|selectattr('result', 'equalto', 'phishing')|list|length %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card">
+            <div class="stat-icon text-cyan"><i class="bi bi-bar-chart-line"></i></div>
+            <div class="stat-value">{{ analyses.total if analyses.total is defined else total }}</div>
+            <div class="stat-label">Total Analyses</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card">
+            <div class="stat-icon" style="color: var(--success);"><i class="bi bi-shield-check"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #10b981, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ safe_count }}</div>
+            <div class="stat-label">Safe</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card">
+            <div class="stat-icon" style="color: var(--warning);"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ suspicious_count }}</div>
+            <div class="stat-label">Suspicious</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card stat-card">
+            <div class="stat-icon" style="color: var(--danger);"><i class="bi bi-shield-exclamation"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #ef4444, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ phishing_count }}</div>
+            <div class="stat-label">Phishing</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="position-relative">
+                    <i class="bi bi-search position-absolute" style="left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                    <input type="text" id="historySearch" class="form-control ps-5" placeholder="Search by URL..." onkeyup="filterHistory()">
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-6 text-md-end">
+                <span class="text-secondary" style="font-size: 0.85rem;">
+                    <i class="bi bi-info-circle me-1"></i>Showing {{ analyses.items|length }} results
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if analyses.items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="historyTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAll" onclick="toggleAll(this)" style="accent-color: var(--cyan);">
+                        </th>
+                        <th style="padding-left: 1.5rem;"><i class="bi bi-link-45deg me-1"></i>URL</th>
+                        <th><i class="bi bi-activity me-1"></i>Result</th>
+                        <th><i class="bi bi-percent me-1"></i>Confidence</th>
+                        <th><i class="bi bi-speedometer me-1"></i>Final Score</th>
+                        <th><i class="bi bi-calendar3 me-1"></i>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in analyses.items %}
+                    <tr class="history-row">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="row-checkbox" value="{{ analysis.id }}" style="accent-color: var(--cyan);">
+                        </td>
+                        <td style="padding-left: 1.5rem; max-width: 420px;">
+                            <a href="{{ url_for('main.analyze', url=analysis.url) }}" class="text-decoration-none" style="color: var(--cyan);">
+                                <span class="d-inline-block text-truncate" style="max-width: 400px;">{{ analysis.url }}</span>
+                            </a>
+                        </td>
+                        <td>
+                            {% if analysis.result == 'safe' %}
+                            <span class="badge badge-success px-3 py-2" style="font-size: 0.78rem;">
+                                <i class="bi bi-check-circle me-1"></i>Safe
+                            </span>
+                            {% elif analysis.result == 'suspicious' %}
+                            <span class="badge badge-warning px-3 py-2" style="font-size: 0.78rem;">
+                                <i class="bi bi-exclamation-circle me-1"></i>Suspicious
+                            </span>
+                            {% else %}
+                            <span class="badge badge-danger px-3 py-2" style="font-size: 0.78rem;">
+                                <i class="bi bi-shield-x me-1"></i>Phishing
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress" style="width: 70px; height: 6px;">
+                                    {% set conf = (analysis.confidence * 100)|round %}
+                                    <div class="progress-bar" style="width: {{ conf }}%; background: {% if analysis.result == 'safe' %}linear-gradient(90deg, #10b981, #34d399){% elif analysis.result == 'suspicious' %}linear-gradient(90deg, #f59e0b, #fbbf24){% else %}linear-gradient(90deg, #ef4444, #f87171){% endif %};"></div>
+                                </div>
+                                <span class="font-mono" style="font-size: 0.85rem;">{{ "%.1f"|format(analysis.confidence * 100) }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="font-mono fw-semibold" style="font-size: 0.9rem;">{{ "%.2f"|format(analysis.final_score) }}</span>
+                        </td>
+                        <td>
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ analysis.created_at.strftime('%b %d, %Y') }}</span>
+                            <br>
+                            <span class="font-mono" style="color: var(--text-secondary); font-size: 0.78rem;">{{ analysis.created_at.strftime('%H:%M') }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-center py-4 border-top" style="border-color: var(--border-color) !important;">
+            <nav aria-label="Page navigation">
+                <ul class="pagination mb-0">
+                    <li class="page-item {{ 'disabled' if not analyses.has_prev }}">
+                        <a class="page-link" href="{{ url_for('main.history', page=analyses.prev_num) if analyses.has_prev else '#' }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% for page_num in analyses.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {{ 'active' if page_num == analyses.page }}">
+                                <a class="page-link" href="{{ url_for('main.history', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not analyses.has_next }}">
+                        <a class="page-link" href="{{ url_for('main.history', page=analyses.next_num) if analyses.has_next else '#' }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div style="font-size: 4rem; opacity: 0.2; color: var(--cyan);">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <h5 class="mt-3 fw-semibold">No Analysis History</h5>
+            <p class="text-secondary mb-4">You haven't analyzed any URLs yet. Start protecting yourself now.</p>
+            <a href="{{ url_for('main.analyze') }}" class="btn btn-neon">
+                <i class="bi bi-search me-1"></i> Analyze a URL
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterHistory() {
+    const query = document.getElementById('historySearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.history-row');
+    rows.forEach(row => {
+        const url = row.querySelector('a').textContent.toLowerCase();
+        row.style.display = url.includes(query) ? '' : 'none';
+    });
+}
+
+function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+function deleteSelected() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (checkboxes.length === 0) {
+        showToast('Please select at least one item to delete.', 'warning');
+        return;
+    }
+    document.getElementById('deleteSelectedCount').textContent = checkboxes.length;
+    new bootstrap.Modal(document.getElementById('deleteSelectedModal')).show();
+}
+
+function confirmDeleteSelected() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    bootstrap.Modal.getInstance(document.getElementById('deleteSelectedModal')).hide();
+    fetch('/api/analyses', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: ids })
+    })
+    .then(res => res.json())
+    .then(data => {
+        showToast(data.message || 'Deleted successfully', 'success');
+        location.reload();
+    })
+    .catch(err => showToast('Error deleting items', 'danger'));
+}
+
+function deleteAll() {
+    new bootstrap.Modal(document.getElementById('deleteAllModal')).show();
+}
+
+function confirmDeleteAll() {
+    bootstrap.Modal.getInstance(document.getElementById('deleteAllModal')).hide();
+    fetch('/api/analyses/all', { method: 'DELETE' })
+    .then(res => res.json())
+    .then(data => {
+        showToast(data.message || 'All analyses deleted', 'success');
+        location.reload();
+    })
+    .catch(err => showToast('Error deleting all items', 'danger'));
+}
+
+function showToast(msg, type) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} flash-alert`;
+    toast.style.cssText = 'position:fixed;top:80px;right:20px;z-index:99999;min-width:300px;border-radius:12px;animation:fadeInUp 0.3s ease;';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.5s';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+    }, 2000);
+    }
+}
+</script>
+
+<!-- Delete Selected Modal -->
+<div class="modal fade" id="deleteSelectedModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid rgba(239,68,68,0.3); border-radius: 16px;">
+            <div class="modal-header" style="border-bottom-color: var(--border-color);">
+                <h5 class="modal-title" style="color: #fca5a5; font-weight: 700;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Delete Selected
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <p style="color: var(--text-primary); font-size: 0.95rem;">
+                    Are you sure you want to delete <strong style="color: #fca5a5;" id="deleteSelectedCount">0</strong> selected item(s)? This cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer" style="border-top-color: var(--border-color);">
+                <button type="button" class="btn-sec" data-bs-dismiss="modal" style="border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 8px; background: transparent;">Cancel</button>
+                <button type="button" class="btn-logout" style="padding: 0.5rem 1.25rem; width: auto; border-radius: 8px;" onclick="confirmDeleteSelected()">
+                    <i class="bi bi-trash3"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Modal -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid rgba(239,68,68,0.3); border-radius: 16px;">
+            <div class="modal-header" style="border-bottom-color: var(--border-color);">
+                <h5 class="modal-title" style="color: #fca5a5; font-weight: 700;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Delete All History
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <p style="color: var(--text-primary); font-size: 0.95rem;">
+                    Are you sure you want to delete <strong style="color: #fca5a5;">ALL</strong> analysis history? This action is permanent and cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer" style="border-top-color: var(--border-color);">
+                <button type="button" class="btn-sec" data-bs-dismiss="modal" style="border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 8px; background: transparent;">Cancel</button>
+                <button type="button" class="btn-logout" style="padding: 0.5rem 1.25rem; width: auto; border-radius: 8px;" onclick="confirmDeleteAll()">
+                    <i class="bi bi-trash3"></i> Delete All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

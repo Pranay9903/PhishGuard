@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - PhishGuard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-header {
+        margin-bottom: 2rem;
+    }
+    .welcome-header h2 {
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+    .welcome-header p {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+    .stat-card-neon {
+        position: relative;
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        border-radius: 16px;
+        padding: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+    .stat-card-neon::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        padding: 1.5px;
+        background: var(--gradient);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0.5;
+        transition: opacity 0.3s;
+    }
+    .stat-card-neon:hover::before {
+        opacity: 1;
+    }
+    .stat-card-neon:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0, 240, 255, 0.12);
+    }
+    .stat-card-neon .stat-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+    }
+    .stat-card-neon .stat-icon-wrap.safe {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+    .stat-card-neon .stat-icon-wrap.suspicious {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+    }
+    .stat-card-neon .stat-icon-wrap.phishing {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+    .stat-card-neon .stat-number {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+    }
+    .stat-card-neon .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 0.25rem;
+    }
+    .section-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .section-title i {
+        color: var(--cyan);
+    }
+    .chart-card {
+        position: relative;
+    }
+    .chart-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--gradient);
+        border-radius: 0 0 16px 16px;
+        opacity: 0.4;
+    }
+    .table-modern tbody tr {
+        transition: all 0.2s;
+    }
+    .table-modern tbody tr:hover {
+        background: rgba(0, 240, 255, 0.05);
+    }
+    .verdict-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .verdict-safe {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .verdict-suspicious {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .verdict-phishing {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .quick-analyze-input {
+        background: var(--bg-secondary);
+        border: 1.5px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        width: 100%;
+        transition: all 0.3s;
+    }
+    .quick-analyze-input:focus {
+        outline: none;
+        border-color: var(--cyan);
+        box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1), 0 0 20px rgba(0, 240, 255, 0.05);
+    }
+    .quick-analyze-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.6;
+    }
+    .sidebar-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem;
+        transition: all 0.3s;
+    }
+    .sidebar-card:hover {
+        border-color: rgba(0, 240, 255, 0.25);
+    }
+    .watchlist-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .watchlist-item:last-child {
+        border-bottom: none;
+    }
+    .watchlist-url {
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .nav-quick-link {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: 10px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.88rem;
+        transition: all 0.3s;
+    }
+    .nav-quick-link:hover {
+        background: var(--cyan-glow);
+        color: var(--cyan);
+        transform: translateX(4px);
+    }
+    .nav-quick-link i {
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-header">
+    <h2><span class="text-gradient">Welcome back,</span> {{ current_user.username }}</h2>
+    <p><i class="bi bi-shield-check text-cyan me-1"></i> Here's your phishing detection overview for today.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card-neon">
+                    <div class="stat-icon-wrap safe">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="stat-number">{{ safe_count }}</div>
+                    <div class="stat-label">Safe URLs</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card-neon">
+                    <div class="stat-icon-wrap suspicious">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-number">{{ suspicious_count }}</div>
+                    <div class="stat-label">Suspicious</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card-neon">
+                    <div class="stat-icon-wrap phishing">
+                        <i class="bi bi-shield-x"></i>
+                    </div>
+                    <div class="stat-number">{{ phishing_count }}</div>
+                    <div class="stat-label">Phishing</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card chart-card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="section-title"><i class="bi bi-bar-chart-line"></i> Weekly Analysis</span>
+                <span class="badge-cyan px-2 py-1 rounded-pill" style="font-size: 0.75rem;">Last 7 Days</span>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyChart" height="120"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="section-title"><i class="bi bi-clock-history"></i> Recent Analyses</span>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_analyses %}
+                <div class="table-responsive">
+                    <table class="table table-modern table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">URL</th>
+                                <th>Result</th>
+                                <th>Confidence</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in recent_analyses %}
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="font-mono text-truncate d-inline-block" style="max-width: 320px;">{{ analysis.url }}</span>
+                                </td>
+                                <td>
+                                    {% if analysis.result == 'safe' %}
+                                    <span class="verdict-badge verdict-safe"><i class="bi bi-check-circle-fill"></i> Safe</span>
+                                    {% elif analysis.result == 'suspicious' %}
+                                    <span class="verdict-badge verdict-suspicious"><i class="bi bi-exclamation-circle-fill"></i> Suspicious</span>
+                                    {% else %}
+                                    <span class="verdict-badge verdict-phishing"><i class="bi bi-x-circle-fill"></i> Phishing</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="font-mono" style="color: var(--text-secondary);">{{ "%.1f"|format(analysis.confidence * 100) }}%</span>
+                                </td>
+                                <td style="color: var(--text-secondary); font-size: 0.85rem;">{{ analysis.created_at.strftime('%b %d, %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 text-end">
+                    <a href="{{ url_for('main.history') }}" class="btn btn-outline-neon btn-sm">
+                        <i class="bi bi-arrow-right me-1"></i> View All History
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--text-secondary); opacity: 0.4;"></i>
+                    <p class="mt-2" style="color: var(--text-secondary);">No analyses yet.</p>
+                    <a href="{{ url_for('main.analyze') }}" class="btn btn-neon btn-sm mt-1">
+                        <i class="bi bi-search me-1"></i> Analyze Your First URL
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="sidebar-card mb-4">
+            <h6 class="section-title mb-3"><i class="bi bi-lightning-charge"></i> Quick Analyze</h6>
+            <form action="{{ url_for('main.analyze') }}" method="GET">
+                <div class="mb-3">
+                    <input type="url" name="url" class="quick-analyze-input" placeholder="https://example.com" required>
+                </div>
+                <button type="submit" class="btn btn-neon w-100">
+                    <i class="bi bi-search me-1"></i> Scan Now
+                </button>
+            </form>
+        </div>
+
+        <div class="sidebar-card mb-4">
+            <h6 class="section-title mb-3"><i class="bi bi-eye"></i> Watchlist</h6>
+            {% if watchlist %}
+                {% for item in watchlist[:5] %}
+                <div class="watchlist-item">
+                    <span class="watchlist-url">{{ item.url }}</span>
+                    {% if item.status == 'safe' %}
+                    <span class="verdict-badge verdict-safe" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Safe</span>
+                    {% elif item.status == 'suspicious' %}
+                    <span class="verdict-badge verdict-suspicious" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Susp</span>
+                    {% elif item.status == 'phishing' %}
+                    <span class="verdict-badge verdict-phishing" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Phish</span>
+                    {% else %}
+                    <span class="verdict-badge" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(148,163,184,0.1); color: var(--text-secondary); border: 1px solid var(--border-color);">Pending</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <a href="{{ url_for('main.watchlist_page') }}" class="btn btn-outline-neon btn-sm w-100 mt-3">
+                    <i class="bi bi-gear me-1"></i> Manage Watchlist
+                </a>
+            {% else %}
+                <div class="text-center py-3">
+                    <i class="bi bi-eye-slash" style="font-size: 1.8rem; color: var(--text-secondary); opacity: 0.4;"></i>
+                    <p class="mt-2 mb-0" style="color: var(--text-secondary); font-size: 0.85rem;">No items in watchlist.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="sidebar-card">
+            <h6 class="section-title mb-3"><i class="bi bi-compass"></i> Navigation</h6>
+            <a href="{{ url_for('main.analyze') }}" class="nav-quick-link">
+                <i class="bi bi-search"></i> Analyze URL
+            </a>
+            <a href="{{ url_for('main.history') }}" class="nav-quick-link">
+                <i class="bi bi-clock-history"></i> Analysis History
+            </a>
+            <a href="{{ url_for('main.watchlist_page') }}" class="nav-quick-link">
+                <i class="bi bi-eye"></i> Watchlist
+            </a>
+            <a href="{{ url_for('main.settings') }}" class="nav-quick-link">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const ctx = document.getElementById('weeklyChart').getContext('2d');
+        const gradientCyan = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientCyan.addColorStop(0, 'rgba(0, 240, 255, 0.8)');
+        gradientCyan.addColorStop(1, 'rgba(0, 240, 255, 0.1)');
+        const gradientPurple = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientPurple.addColorStop(0, 'rgba(168, 85, 247, 0.8)');
+        gradientPurple.addColorStop(1, 'rgba(168, 85, 247, 0.1)');
+        const gradientRed = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientRed.addColorStop(0, 'rgba(239, 68, 68, 0.8)');
+        gradientRed.addColorStop(1, 'rgba(239, 68, 68, 0.1)');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Safe', 'Suspicious', 'Phishing'],
+                datasets: [{
+                    label: 'This Week',
+                    data: [{{ safe_count }}, {{ suspicious_count }}, {{ phishing_count }}],
+                    backgroundColor: [gradientCyan, gradientPurple, gradientRed],
+                    borderColor: ['rgba(0, 240, 255, 0.9)', 'rgba(168, 85, 247, 0.9)', 'rgba(239, 68, 68, 0.9)'],
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(11, 15, 43, 0.95)',
+                        borderColor: 'rgba(0, 240, 255, 0.2)',
+                        borderWidth: 1,
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#d0d9e6',
+                        cornerRadius: 10,
+                        padding: 12,
+                        titleFont: { family: 'Inter', weight: '600' },
+                        bodyFont: { family: 'JetBrains Mono' }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(0, 240, 255, 0.05)', drawBorder: false },
+                        ticks: {
+                            color: '#d0d9e6',
+                            font: { family: 'Inter', weight: '500', size: 12 }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0, 240, 255, 0.05)', drawBorder: false },
+                        ticks: {
+                            color: '#d0d9e6',
+                            font: { family: 'JetBrains Mono', size: 11 },
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Watchlist - PhishGuard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">
+            <i class="bi bi-eye text-cyan me-2"></i>Watchlist
+        </h3>
+        <p class="text-secondary mb-0" style="font-size: 0.9rem;">Monitor URLs for changes in phishing status</p>
+    </div>
+</div>
+
+{% set total_items = items|length %}
+{% set safe_c = items|selectattr('status', 'equalto', 'safe')|list|length %}
+{% set suspicious_c = items|selectattr('status', 'equalto', 'suspicious')|list|length %}
+{% set phishing_c = items|selectattr('status', 'equalto', 'phishing')|list|length %}
+{% set pending_c = items|selectattr('status', 'equalto', 'pending')|list|length %}
+
+<div class="row g-3 mb-4">
+    <div class="col">
+        <div class="card stat-card text-center">
+            <div class="stat-icon text-cyan"><i class="bi bi-collection"></i></div>
+            <div class="stat-value">{{ total_items }}</div>
+            <div class="stat-label">Total Items</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card text-center">
+            <div class="stat-icon" style="color: var(--success);"><i class="bi bi-shield-check"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #10b981, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ safe_c }}</div>
+            <div class="stat-label">Safe</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card text-center">
+            <div class="stat-icon" style="color: var(--warning);"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ suspicious_c }}</div>
+            <div class="stat-label">Suspicious</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card text-center">
+            <div class="stat-icon" style="color: var(--danger);"><i class="bi bi-shield-exclamation"></i></div>
+            <div class="stat-value" style="background: linear-gradient(135deg, #ef4444, #f87171); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ phishing_c }}</div>
+            <div class="stat-label">Phishing</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card stat-card text-center">
+            <div class="stat-icon text-purple"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-value">{{ pending_c }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-0">
+                {% if items %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="padding-left: 1.5rem;"><i class="bi bi-link-45deg me-1"></i>URL</th>
+                                <th><i class="bi bi-activity me-1"></i>Status</th>
+                                <th><i class="bi bi-calendar3 me-1"></i>Last Checked</th>
+                                <th class="text-center"><i class="bi bi-bell me-1"></i>Notify</th>
+                                <th class="text-center"><i class="bi bi-gear me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td style="padding-left: 1.5rem; max-width: 350px;">
+                                    <a href="{{ url_for('main.analyze', url=item.url) }}" class="text-decoration-none" style="color: var(--cyan);">
+                                        <span class="d-inline-block text-truncate" style="max-width: 330px;">{{ item.url }}</span>
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if item.status == 'safe' %}
+                                    <span class="badge badge-success px-3 py-2" style="font-size: 0.78rem;">
+                                        <i class="bi bi-check-circle me-1"></i>Safe
+                                    </span>
+                                    {% elif item.status == 'suspicious' %}
+                                    <span class="badge badge-warning px-3 py-2" style="font-size: 0.78rem;">
+                                        <i class="bi bi-exclamation-circle me-1"></i>Suspicious
+                                    </span>
+                                    {% elif item.status == 'phishing' %}
+                                    <span class="badge badge-danger px-3 py-2" style="font-size: 0.78rem;">
+                                        <i class="bi bi-shield-x me-1"></i>Phishing
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-purple px-3 py-2" style="font-size: 0.78rem;">
+                                        <i class="bi bi-hourglass-split me-1"></i>Pending
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.last_checked %}
+                                    <span style="font-size: 0.85rem;">{{ item.last_checked.strftime('%b %d, %Y') }}</span>
+                                    <br>
+                                    <span class="font-mono" style="color: var(--text-secondary); font-size: 0.78rem;">{{ item.last_checked.strftime('%H:%M') }}</span>
+                                    {% else %}
+                                    <span class="text-secondary" style="font-size: 0.85rem;">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-flex justify-content-center">
+                                        <input class="form-check-input" type="checkbox" role="switch"
+                                            {{ 'checked' if item.notify_on_change }}
+                                            onchange="toggleNotify({{ item.id }}, this.checked)"
+                                            style="cursor: pointer;">
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-neon px-2 py-1" onclick="removeFromWatchlist({{ item.id }})" title="Remove from watchlist">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div style="font-size: 4rem; opacity: 0.2; color: var(--purple);">
+                        <i class="bi bi-eye-slash"></i>
+                    </div>
+                    <h5 class="mt-3 fw-semibold">Watchlist is Empty</h5>
+                    <p class="text-secondary mb-0">Add URLs from the sidebar to start monitoring them.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-plus-circle text-cyan me-2"></i>Add to Watchlist
+                </h6>
+            </div>
+            <div class="card-body">
+                <form onsubmit="addToWatchlist(event)">
+                    <div class="mb-3">
+                        <label class="form-label">URL to Monitor</label>
+                        <input type="url" id="watchlist-url" class="form-control" placeholder="https://example.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-neon w-100">
+                        <i class="bi bi-plus-lg me-1"></i> Add URL
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0 fw-semibold">
+                    <i class="bi bi-lightbulb text-cyan me-2"></i>Quick Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-3 mb-3">
+                    <div style="min-width: 36px; height: 36px; border-radius: 10px; background: rgba(0,240,255,0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-bell-fill text-cyan"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 fw-semibold" style="font-size: 0.88rem;">Notifications</p>
+                        <p class="text-secondary mb-0" style="font-size: 0.8rem;">Toggle notify to get alerts when a URL's status changes.</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 mb-3">
+                    <div style="min-width: 36px; height: 36px; border-radius: 10px; background: rgba(168,85,247,0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-arrow-repeat text-purple"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 fw-semibold" style="font-size: 0.88rem;">Auto Re-scan</p>
+                        <p class="text-secondary mb-0" style="font-size: 0.8rem;">Watched URLs are automatically re-analyzed periodically.</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-3">
+                    <div style="min-width: 36px; height: 36px; border-radius: 10px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-shield-lock-fill" style="color: var(--success);"></i>
+                    </div>
+                    <div>
+                        <p class="mb-0 fw-semibold" style="font-size: 0.88rem;">Stay Protected</p>
+                        <p class="text-secondary mb-0" style="font-size: 0.8rem;">Add any suspicious URLs you encounter for ongoing monitoring.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function addToWatchlist(event) {
+    event.preventDefault();
+    const url = document.getElementById('watchlist-url').value;
+
+    try {
+        const response = await fetch('/api/watchlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to add URL to watchlist');
+        }
+    } catch (error) {
+        alert('Error adding to watchlist');
+    }
+}
+
+async function removeFromWatchlist(id) {
+    if (!confirm('Remove this URL from watchlist?')) return;
+
+    try {
+        const response = await fetch(`/api/watchlist/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to remove URL');
+        }
+    } catch (error) {
+        alert('Error removing from watchlist');
+    }
+}
+
+async function toggleNotify(id, enabled) {
+    try {
+        await fetch(`/api/watchlist/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notify_on_change: enabled })
+        });
+    } catch (error) {
+        console.error('Failed to toggle notification');
+    }
+}
+</script>
+{% endblock %}

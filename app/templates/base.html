@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PhishGuard{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <style>
+        :root {
+            --bg-primary: #050816;
+            --bg-secondary: #0b0f2b;
+            --bg-card: rgba(15, 23, 60, 0.6);
+            --bg-glass: rgba(15, 23, 60, 0.4);
+            --text-primary: #e2e8f0;
+            --text-secondary: #b8c5d6;
+            --cyan: #00f0ff;
+            --purple: #a855f7;
+            --cyan-glow: rgba(0, 240, 255, 0.15);
+            --purple-glow: rgba(168, 85, 247, 0.15);
+            --border-color: rgba(0, 240, 255, 0.12);
+            --gradient: linear-gradient(135deg, #00f0ff, #a855f7);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f0f4ff;
+            --bg-secondary: #e8ecf8;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-glass: rgba(255, 255, 255, 0.65);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --cyan: #0891b2;
+            --purple: #7c3aed;
+            --cyan-glow: rgba(8, 145, 178, 0.1);
+            --purple-glow: rgba(124, 58, 237, 0.1);
+            --border-color: rgba(8, 145, 178, 0.18);
+            --gradient: linear-gradient(135deg, #0891b2, #7c3aed);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Animated grid background */
+        .grid-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 60px; }
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: -1; pointer-events: none;
+        }
+        .orb-1 { width: 400px; height: 400px; background: var(--cyan); top: -100px; right: -100px; animation: orbFloat1 15s ease-in-out infinite; }
+        .orb-2 { width: 350px; height: 350px; background: var(--purple); bottom: -80px; left: -80px; animation: orbFloat2 18s ease-in-out infinite; }
+        .orb-3 { width: 250px; height: 250px; background: var(--cyan); top: 50%; left: 50%; animation: orbFloat3 12s ease-in-out infinite; }
+        @keyframes orbFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-60px, 60px); } }
+        @keyframes orbFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(50px, -50px); } }
+        @keyframes orbFloat3 { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-40%, -60%); } }
+
+        /* Glassmorphism navbar */
+        .navbar {
+            background: var(--bg-glass) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color) !important;
+            padding: 0.75rem 1.5rem;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            font-weight: 800; font-size: 1.4rem;
+            background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .navbar-brand i { -webkit-text-fill-color: var(--cyan); font-size: 1.5rem; }
+        .navbar .nav-link {
+            color: var(--text-secondary) !important; font-weight: 500; font-size: 0.9rem;
+            padding: 0.5rem 1rem !important; border-radius: 8px; transition: all 0.3s;
+            position: relative;
+        }
+        .navbar .nav-link:hover, .navbar .nav-link.active {
+            color: var(--cyan) !important; background: var(--cyan-glow);
+        }
+        .navbar .nav-link::after {
+            content: ''; position: absolute; bottom: 4px; left: 50%; width: 0; height: 2px;
+            background: var(--gradient); transition: all 0.3s; transform: translateX(-50%); border-radius: 2px;
+        }
+        .navbar .nav-link:hover::after { width: 60%; }
+        .dropdown-menu {
+            background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 0.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .dropdown-item { color: var(--text-secondary); border-radius: 8px; padding: 0.6rem 1rem; transition: all 0.2s; }
+        .dropdown-item:hover { background: var(--cyan-glow); color: var(--cyan); }
+        .dropdown-divider { border-color: var(--border-color); }
+
+        /* Sidebar */
+        .sidebar {
+            min-height: calc(100vh - 60px); background: var(--bg-glass);
+            backdrop-filter: blur(20px); border-right: 1px solid var(--border-color);
+            padding: 1.5rem 0.75rem; position: sticky; top: 60px;
+        }
+        .sidebar .nav-link {
+            color: var(--text-secondary); border-radius: 10px; padding: 0.7rem 1rem;
+            margin-bottom: 0.25rem; font-weight: 500; font-size: 0.88rem;
+            transition: all 0.3s; display: flex; align-items: center; gap: 0.75rem;
+        }
+        .sidebar .nav-link i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .sidebar .nav-link:hover { background: var(--cyan-glow); color: var(--cyan); transform: translateX(4px); }
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(168,85,247,0.15));
+            color: var(--cyan); border-left: 3px solid var(--cyan);
+        }
+        .sidebar-heading {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--text-secondary); padding: 1rem 1rem 0.5rem; font-weight: 700;
+        }
+
+        /* Glassmorphism cards */
+        .card, .glass-card {
+            background: var(--bg-card); backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color) !important;
+            border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s; overflow: hidden;
+        }
+        .card:hover, .glass-card:hover {
+            border-color: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 240, 255, 0.08);
+        }
+        .card-header {
+            background: rgba(0, 240, 255, 0.05) !important;
+            border-bottom: 1px solid var(--border-color) !important;
+            font-weight: 600; font-size: 0.95rem;
+        }
+
+        /* Stat cards */
+        .stat-card {
+            position: relative; overflow: hidden; padding: 1.5rem;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; top: -50%; right: -50%;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: var(--gradient); opacity: 0.08;
+        }
+        .stat-card .stat-value {
+            font-size: 2rem; font-weight: 800;
+            background: var(--gradient); -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .stat-card .stat-label { color: var(--text-secondary); font-size: 0.82rem; font-weight: 500; }
+        .stat-card .stat-icon { font-size: 2.5rem; opacity: 0.15; position: absolute; top: 1rem; right: 1rem; }
+
+        /* Buttons */
+        .btn-neon {
+            background: var(--gradient); border: none; color: #fff; font-weight: 600;
+            border-radius: 10px; padding: 0.6rem 1.5rem; transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.25);
+        }
+        .btn-neon:hover {
+            color: #fff; transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 240, 255, 0.35);
+        }
+        .btn-outline-neon {
+            background: transparent; border: 1.5px solid var(--cyan); color: var(--cyan);
+            font-weight: 600; border-radius: 10px; padding: 0.6rem 1.5rem; transition: all 0.3s;
+        }
+        .btn-outline-neon:hover {
+            background: var(--cyan-glow); color: var(--cyan); transform: translateY(-2px);
+        }
+        .btn-outline-purple {
+            background: transparent; border: 1.5px solid var(--purple); color: var(--purple);
+            font-weight: 600; border-radius: 10px; padding: 0.6rem 1.5rem; transition: all 0.3s;
+        }
+        .btn-outline-purple:hover {
+            background: var(--purple-glow); color: var(--purple); transform: translateY(-2px);
+        }
+        .btn-danger-glow {
+            background: var(--danger); border: none; color: #fff; border-radius: 10px;
+            font-weight: 600; transition: all 0.3s;
+        }
+        .btn-danger-glow:hover { box-shadow: 0 4px 20px rgba(239,68,68,0.4); transform: translateY(-2px); color: #fff; }
+
+        /* Tables */
+        .table { color: var(--text-primary); }
+        .table thead th {
+            background: rgba(0, 240, 255, 0.05); color: var(--text-secondary);
+            font-weight: 600; font-size: 0.8rem; text-transform: uppercase;
+            letter-spacing: 0.05em; border-color: var(--border-color) !important;
+        }
+        .table tbody td { border-color: var(--border-color) !important; vertical-align: middle; }
+        .table tbody tr { transition: background 0.2s; }
+        .table tbody tr:hover { background: var(--cyan-glow); }
+
+        /* Forms */
+        .form-control, .form-select {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            color: var(--text-primary); border-radius: 10px; padding: 0.65rem 1rem;
+            transition: all 0.3s; font-size: 0.9rem;
+        }
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary); color: var(--text-primary);
+            border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+        }
+        .form-control::placeholder { color: var(--text-secondary); opacity: 0.6; }
+        .form-label { color: var(--text-secondary); font-weight: 500; font-size: 0.88rem; }
+
+        /* Badges */
+        .badge-cyan { background: rgba(0, 240, 255, 0.15); color: var(--cyan); font-weight: 600; }
+        .badge-purple { background: rgba(168, 85, 247, 0.15); color: var(--purple); font-weight: 600; }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); font-weight: 600; }
+        .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); font-weight: 600; }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); font-weight: 600; }
+
+        /* Progress bars */
+        .progress {
+            background: var(--bg-secondary); border-radius: 10px; height: 8px; overflow: hidden;
+        }
+        .progress-bar { background: var(--gradient); border-radius: 10px; }
+
+        /* Pagination */
+        .pagination .page-link {
+            background: var(--bg-card); border-color: var(--border-color);
+            color: var(--text-secondary); border-radius: 8px; margin: 0 3px;
+            transition: all 0.3s; font-weight: 500;
+        }
+        .pagination .page-link:hover {
+            background: var(--cyan-glow); color: var(--cyan); border-color: var(--cyan);
+        }
+        .pagination .page-item.active .page-link {
+            background: var(--gradient); border-color: transparent; color: #fff;
+        }
+        .pagination .page-item.disabled .page-link {
+            background: var(--bg-secondary); color: var(--text-secondary); opacity: 0.5;
+        }
+
+        /* Alerts */
+        .alert {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            color: var(--text-primary); border-radius: 12px; backdrop-filter: blur(10px);
+        }
+        .alert-success { border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+        .alert-danger { border-color: rgba(239,68,68,0.3); color: #fca5a5; }
+        .alert-warning { border-color: rgba(245,158,11,0.3); color: #fcd34d; }
+        .alert-info { border-color: rgba(0,240,255,0.3); color: #93c5fd; }
+
+        /* Modals */
+        .modal-content {
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color); border-radius: 16px;
+        }
+        .modal-header { border-bottom-color: var(--border-color); }
+        .modal-footer { border-top-color: var(--border-color); }
+        .btn-close { filter: invert(1); }
+
+        /* Theme toggle */
+        .theme-toggle {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            color: var(--text-secondary); border-radius: 50%; width: 38px; height: 38px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; font-size: 1.1rem;
+        }
+        .theme-toggle:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-glow); }
+
+        /* WhatsApp floating button */
+        .whatsapp-float {
+            position: fixed; bottom: 24px; right: 24px; z-index: 999;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: #25d366; color: #fff; display: flex;
+            align-items: center; justify-content: center;
+            font-size: 1.6rem; text-decoration: none;
+            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s; animation: whatsappPulse 2s ease-in-out infinite;
+        }
+        .whatsapp-float:hover {
+            transform: scale(1.1); color: #fff;
+            box-shadow: 0 6px 30px rgba(37, 211, 102, 0.6);
+        }
+        @keyframes whatsappPulse {
+            0%, 100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+            50% { box-shadow: 0 4px 30px rgba(37, 211, 102, 0.7), 0 0 0 8px rgba(37, 211, 102, 0.1); }
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-glass); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color); padding: 1.5rem 0;
+            color: var(--text-secondary); font-size: 0.85rem; margin-top: auto;
+        }
+        .footer a { color: var(--cyan); text-decoration: none; transition: color 0.3s; }
+        .footer a:hover { color: var(--purple); }
+
+        /* Content wrapper */
+        .content-wrapper { min-height: calc(100vh - 140px); padding: 1.5rem; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+        /* Utility */
+        .text-cyan { color: var(--cyan) !important; }
+        .text-purple { color: var(--purple) !important; }
+        .text-gradient {
+            background: var(--gradient); -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .border-glow { border-color: var(--border-color); box-shadow: 0 0 15px rgba(0, 240, 255, 0.05); }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Nav toggler */
+        .navbar-toggler { border-color: var(--border-color); }
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%2300f0ff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-shield-check"></i> PhishGuard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.analyze') }}"><i class="bi bi-search"></i> Analyze</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.history') }}"><i class="bi bi-clock-history"></i> History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.watchlist_page') }}"><i class="bi bi-eye"></i> Watchlist</a>
+                    </li>
+                    {% if current_user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.admin') }}"><i class="bi bi-shield-lock"></i> Admin</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.settings') }}"><i class="bi bi-gear"></i> Settings</a>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                            <i class="bi bi-moon-stars" id="theme-icon"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item dropdown ms-2">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
+                            <span style="width:32px;height:32px;border-radius:50%;background:var(--gradient);display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#fff;">{{ current_user.username[0]|upper }}</span>
+                            {{ current_user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('main.settings') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-neon btn-sm ms-2" href="{{ url_for('auth.register') }}">Register</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item ms-2">
+                        <a class="nav-link" href="https://github.com/Pranay9903" target="_blank" title="GitHub">
+                            <i class="bi bi-github" style="font-size:1.2rem;"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content-wrapper" style="margin-top: 66px;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} mb-3 flash-alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <span>&copy; {{ now().year if now is defined else '2026' }} PhishGuard &mdash; Developed by <a href="https://github.com/Pranay9903">Pranay Kadam</a></span>
+        </div>
+    </footer>
+
+    <a href="https://wa.me/919967010387" class="whatsapp-float" target="_blank" title="Chat on WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateIcon(theme);
+
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const current = document.documentElement.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+                updateIcon(next);
+            });
+
+            function updateIcon(theme) {
+                const icon = document.getElementById('theme-icon');
+                if (icon) {
+                    icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars';
+                }
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+            }
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+    <script>
+        setTimeout(() => {
+            document.querySelectorAll('.flash-alert').forEach(el => {
+                el.style.transition = 'opacity 0.5s, transform 0.5s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 2000);
+    </script>
+</body>
+</html>

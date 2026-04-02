@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PhishGuard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-purple: #a855f7;
+            --neon-blue: #3b82f6;
+            --neon-pink: #ec4899;
+            --dark-bg: #050816;
+            --dark-card: #0a0f1e;
+            --dark-border: #1a2444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+        }
+        .grid-bg {
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; pointer-events: none; }
+        .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, var(--neon-purple), transparent); top: -100px; right: -100px; }
+        .orb-2 { width: 350px; height: 350px; background: radial-gradient(circle, var(--neon-cyan), transparent); bottom: -100px; left: -100px; }
+
+        .auth-container {
+            width: 100%; max-width: 460px; padding: 2rem;
+            position: relative; z-index: 2;
+            animation: fadeInUp 0.6s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .auth-brand {
+            text-align: center; margin-bottom: 2rem;
+        }
+        .auth-brand a {
+            font-size: 2rem; font-weight: 800; text-decoration: none;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .auth-brand i { -webkit-text-fill-color: var(--neon-cyan); filter: drop-shadow(0 0 8px rgba(0,240,255,0.5)); }
+        .auth-brand p { color: #64748b; margin-top: 0.5rem; font-size: 0.9rem; }
+
+        .auth-card {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-cyan), var(--neon-blue));
+        }
+        .auth-card h3 {
+            font-size: 1.5rem; font-weight: 700; margin-bottom: 0.3rem;
+        }
+        .auth-card .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+
+        .form-label { font-weight: 600; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; }
+        .form-control {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--dark-border);
+            color: #e2e8f0;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--neon-purple);
+            color: #e2e8f0;
+            box-shadow: 0 0 20px rgba(168,85,247,0.15);
+        }
+        .form-control::placeholder { color: #475569; }
+
+        .btn-auth {
+            width: 100%;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+            border: none; color: #fff; font-weight: 700;
+            padding: 0.9rem; border-radius: 12px;
+            font-size: 1rem; cursor: pointer;
+            transition: all 0.3s; margin-top: 0.5rem;
+        }
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(168,85,247,0.4);
+            color: #fff;
+        }
+
+        .auth-footer { text-align: center; margin-top: 1.5rem; color: #64748b; font-size: 0.9rem; }
+        .auth-footer a { color: var(--neon-purple); text-decoration: none; font-weight: 600; transition: all 0.3s; }
+        .auth-footer a:hover { text-shadow: 0 0 10px rgba(168,85,247,0.5); }
+
+        .alert { border-radius: 12px; border: none; font-size: 0.9rem; }
+        .alert-success { background: rgba(16,185,129,0.15); color: #10b981; }
+        .alert-danger { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .alert-warning { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .alert-info { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+        .input-group-text {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--dark-border);
+            border-right: none;
+            color: #64748b;
+            border-radius: 12px 0 0 12px;
+        }
+        .input-group .form-control {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .password-toggle {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--dark-border);
+            border-left: none;
+            color: #64748b;
+            border-radius: 0 12px 12px 0;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .password-toggle:hover { color: var(--neon-purple); }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="auth-container">
+        <div class="auth-brand">
+            <a href="/"><i class="bi bi-shield-check"></i> PhishGuard</a>
+            <p>Advanced AI-Powered Phishing Detection</p>
+        </div>
+
+        <div class="auth-card">
+           <center> <h3>Welcome Back</h3></center>
+           <center> <p class="subtitle">Sign in to your PhishGuard account</p></center>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} mb-3 flash-alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="off">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" name="username" class="form-control" placeholder="Enter your username" autocomplete="off" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="bi bi-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-auth">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="{{ url_for('auth.register') }}">Create Account</a>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/" style="color: #64748b; text-decoration: none; font-size: 0.85rem;">
+                <i class="bi bi-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const pwd = document.getElementById('password');
+            const icon = document.getElementById('toggleIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                pwd.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+        setTimeout(() => {
+            document.querySelectorAll('.flash-alert').forEach(el => {
+                el.style.transition = 'opacity 0.5s, transform 0.5s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 2000);
+    </script>
+</body>
+</html>
